@@ -17,10 +17,9 @@ switch(player.getPlayerState())
             state: "PLAYING"
         });
         break;
-    default:
-        // all the other states do not involve a deliberate playing state
+    default: // all the other states do not involve a deliberate playing state
         self.postMessage({
-            msg: "Video playing!",
+            msg: "There is no video!",
             state: "INEXISTENT"
         });
         break;
