@@ -16,7 +16,7 @@ PageMod({
     onAttach: function(worker){
         if(isYoutube(worker.url))
         {
-            writeState("PLAYING");
+            writeState("PLAYING", "TODO, populate this! with content script + message");
         }
     }
 });
@@ -41,7 +41,7 @@ function main()
 
     if(!found)
     {
-        writeState("INEXISTENT");
+        writeState("INEXISTENT", null);
     }
 }
 
@@ -51,7 +51,7 @@ function pauseYT(tab)
         contentScriptFile: "./pauseScript.js",
         onMessage: function(msg) {
             console.log(msg.msg);
-            writeState(msg.state)
+            writeState(msg.state, msg.title)
         },
         onError: function(err) {
             console.log(err.fileName + ":" + err.lineNumber + ": " + err);
@@ -59,11 +59,14 @@ function pauseYT(tab)
     });
 }
 
-function writeState(state)
+function writeState(state, title)
 {
     var r = Request({
         url: "http://127.0.0.1:1337",
-        content: state,
+        content: {
+            state: state,
+            title:title,
+        },
         onComplete: function(response) {
             if(response.status !== 200)
             {

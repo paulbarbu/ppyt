@@ -22,6 +22,9 @@ or pause it if it's paused in mpd
 8. If the command is `PLAYING` or `PAUSED` mpd is paused since I want no music from mpd
 if I have a playing youtube tab, also if I have a paused youtube tab, I want to keep mpd quiet by pausing it
 
+The `ppytd.js` application also listens for TCP connections on port 1338 and writes there the current song name.
+This can be used to read the song name into conky.
+
 
 Installation (development)
 ==========================

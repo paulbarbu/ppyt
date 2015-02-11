@@ -1,5 +1,8 @@
 var http = require('http');
 var util = require('util');
+var net = require('net');
+var qs = require('querystring')
+
 var mpd = require('mpd');
 
 var client = mpd.connect({
@@ -7,7 +10,11 @@ var client = mpd.connect({
     host: "localhost",
 });
 
-var server = http.createServer(function(req, res){
+client.on("system-player", getMpdTitle);
+
+currentTitle = null;
+
+var httpServer = http.createServer(function(req, res){
     var data = "";
 
     if(req.method == "POST")
@@ -17,7 +24,7 @@ var server = http.createServer(function(req, res){
         });
 
         req.on('end', function(){
-            receivedCommand(data);
+            receivedCommand(qs.parse(data));
 
             res.writeHead(200, {'Content-Type': 'text/plain'});
             res.end();
@@ -30,16 +37,25 @@ var server = http.createServer(function(req, res){
     }
 });
 
+var tcpServer = net.createServer(function(socket) {
+    if(currentTitle !== null)
+    {
+        socket.end(currentTitle);
+    }
+});
+
 function receivedCommand(c)
 {
-    util.log("Youtube is " + c);
+    util.log("Youtube is " + c.state);
+    util.log("Title is " + c.title.replace(/\s+/gi, ' '));
 
-    switch(c)
+    switch(c.state)
     {
         case "INEXISTENT":
             toggleMpd();
             break;
         case "PLAYING":
+            currentTitle = c.title.replace(/\s+/gi, ' ');
         case "PAUSED":
             pauseMpd();
             break;
@@ -58,13 +74,15 @@ function playMpd()
         else
         {
             util.log("Played successfully" + (msg ? ": " + msg : ""));
+            getMpdTitle();
         }
     });
 }
 
 function pauseMpd()
 {
-    client.sendCommand("pause 1", function(err, msg){
+    //TODO:  intelligent stop/pause - stop if stream, pause if file on disk
+    client.sendCommand("stop", function(err, msg){
         if(err)
         {
             console.error("MPD returned error: " + err);
@@ -106,4 +124,36 @@ function toggleMpd()
     });
 }
 
-server.listen(1337, '127.0.0.1');
+function getMpdTitle()
+{
+    client.sendCommand("currentsong", function(err, msg){
+        if(err)
+        {
+            console.error("MPD returned error: " + err);
+            currentTitle = "";
+        }
+        else
+        {
+            if(msg)
+            {
+                var song = mpd.parseKeyValueMessage(msg);
+
+                if(song.Title != null)
+                {
+                    currentTitle = song.Title;
+                }
+                else if(song.Name != null)
+                {
+                    currentTitle = song.Name;
+                }
+                else
+                {
+                    currentTitle = song.file;
+                }
+            }
+        }
+    });
+}
+
+httpServer.listen(1337, '127.0.0.1');
+tcpServer.listen(1338, '127.0.0.1');
