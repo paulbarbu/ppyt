@@ -1,4 +1,5 @@
 var { Hotkey } = require("sdk/hotkeys");
+var { Request } = require("sdk/request");
 
 var triggerKey = Hotkey({
     combo: "shift-accel-alt-p",
@@ -39,7 +40,7 @@ function pauseYT(tab)
             console.log(msg.msg);
             writeState(msg.state)
         },
-        onError: function (err) {
+        onError: function(err) {
             console.log(err.fileName + ":" + err.lineNumber + ": " + err);
         }
     });
@@ -47,16 +48,16 @@ function pauseYT(tab)
 
 function writeState(state)
 {
-    let fileIO = require("sdk/io/file");
-    let textWriter = fileIO.open("~/.ppyt", "w");
+    var r = Request({
+        url: "http://127.0.0.1:1337",
+        content: state,
+        onComplete: function(response) {
+            if(response.status !== 200)
+            {
+                console.error("Could not communicate with server, status: " + response.status);
+            }
+        }
+    });
 
-    if(!textWriter.closed)
-    {
-        textWriter.write(state)
-        textWriter.close();
-    }
-    else
-    {
-        console.error("Cannot access the state file, it's closed!")
-    }
+    r.post();
 }
