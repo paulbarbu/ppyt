@@ -1,10 +1,23 @@
 var { Hotkey } = require("sdk/hotkeys");
 var { Request } = require("sdk/request");
+var { PageMod } = require("sdk/page-mod");
 
-var triggerKey = Hotkey({
+Hotkey({
     combo: "shift-accel-alt-p",
     onPress: function() {
         main();
+    }
+});
+
+PageMod({
+    //TODO: if I click a video inside an already opened youtube tab this doesn't fire since it's already attached
+    include: "*.youtube.com",
+    attachTo: ["top"],
+    onAttach: function(worker){
+        if(isYoutube(worker.url))
+        {
+            writeState("PLAYING");
+        }
     }
 });
 
@@ -18,7 +31,7 @@ function main()
     for(let tab of tabs)
     {
         // check if the tab is a youtube.com tab with a video in it
-        if(tab.url.indexOf("youtube.com/watch") !== -1)
+        if(isYoutube(tab.url))
         {
             found = true;
             pauseYT(tab);
@@ -60,4 +73,8 @@ function writeState(state)
     });
 
     r.post();
+}
+
+function isYoutube(url) {
+    return url.indexOf("youtube.com/watch") !== -1;
 }
