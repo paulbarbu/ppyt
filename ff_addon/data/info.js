@@ -1,6 +1,12 @@
 function isMusicVideo(document)
 {
-    return /music/i.test(document.querySelector("meta[itemprop='genre']").getAttribute('content'));
+    var meta = document.querySelector("meta[itemprop='genre']");
+    if(meta)
+    {
+        return /music/i.test(meta.getAttribute('content'));
+    }
+
+    return false;
 }
 
 function getVideoTitle(document)
