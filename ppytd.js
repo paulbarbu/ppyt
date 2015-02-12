@@ -79,18 +79,44 @@ function playMpd()
         }
     });
 }
-
+//TODO: command sending to MPD can be DRYed
 function pauseMpd()
 {
-    //TODO:  intelligent stop/pause - stop if stream, pause if file on disk
-    client.sendCommand("stop", function(err, msg){
+    client.sendCommand("currentsong", function(err, msg){
         if(err)
         {
             console.error("MPD returned error: " + err);
         }
-        else
+        else if(msg)
         {
-            util.log("Paused successfully" + (msg ? ": " + msg : ""));
+            var file = mpd.parseKeyValueMessage(msg).file;
+
+            if(file.indexOf("http://") == -1)
+            {
+                client.sendCommand("pause 1", function(err, msg){
+                    if(err)
+                    {
+                        console.error("MPD returned error: " + err);
+                    }
+                    else
+                    {
+                        util.log("Paused successfully" + (msg ? ": " + msg : ""));
+                    }
+                });
+            }
+            else
+            {
+                client.sendCommand("stop", function(err, msg){
+                    if(err)
+                    {
+                        console.error("MPD returned error: " + err);
+                    }
+                    else
+                    {
+                        util.log("Paused successfully" + (msg ? ": " + msg : ""));
+                    }
+                });
+            }
         }
     });
 }
