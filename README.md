@@ -25,6 +25,8 @@ if I have a playing youtube tab, also if I have a paused youtube tab, I want to 
 The `ppytd.js` application also listens for TCP connections on port 1338 and writes there the current song name.
 This can be used to read the song name into conky.
 
+The Firefox exension also stops MPD when you open a new video.
+
 
 Installation (development)
 ==========================
