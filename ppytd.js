@@ -30,7 +30,7 @@ function receivedCommand(c)
             });
             break;
         case "PLAYING":
-            mpdLib.currentTitle = t;
+            currentTitle = t;
         case "PAUSED":
             mpdLib.pauseMpd();
             break;
