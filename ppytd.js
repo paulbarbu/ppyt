@@ -3,16 +3,15 @@ var util = require('util');
 var net = require('net');
 var qs = require('querystring');
 
-var mpd = require('mpd');
-
-var client = mpd.connect({
-    port: 6600,
-    host: "localhost",
-});
-
-client.on("system-player", getMpdTitle);
+var mpdLib = require('./mpd-common');
 
 currentTitle = null;
+
+mpdLib.mpdClient.on("system-player", function() {
+    mpdLib.getMpdTitle(function(title){
+        currentTitle = title;
+    });
+});
 
 var httpServer = http.createServer(function(req, res){
     var data = "";
@@ -53,133 +52,16 @@ function receivedCommand(c)
     switch(c.state)
     {
         case "INEXISTENT":
-            toggleMpd();
+            mpdLib.toggleMpd();
             break;
         case "PLAYING":
-            currentTitle = t;
+            mpdLib.currentTitle = t;
         case "PAUSED":
-            pauseMpd();
+            mpdLib.pauseMpd();
             break;
         default:
             break;
     }
-}
-
-function playMpd()
-{
-    client.sendCommand("play", function(err, msg){
-        if(err)
-        {
-            console.error("MPD returned error: " + err);
-        }
-        else
-        {
-            util.log("Played successfully" + (msg ? ": " + msg : ""));
-            getMpdTitle();
-        }
-    });
-}
-//TODO: command sending to MPD can be DRYed
-function pauseMpd()
-{
-    client.sendCommand("currentsong", function(err, msg){
-        if(err)
-        {
-            console.error("MPD returned error: " + err);
-        }
-        else if(msg)
-        {
-            var file = mpd.parseKeyValueMessage(msg).file;
-
-            if(file.indexOf("http://") == -1)
-            {
-                client.sendCommand("pause 1", function(err, msg){
-                    if(err)
-                    {
-                        console.error("MPD returned error: " + err);
-                    }
-                    else
-                    {
-                        util.log("Paused successfully" + (msg ? ": " + msg : ""));
-                    }
-                });
-            }
-            else
-            {
-                client.sendCommand("stop", function(err, msg){
-                    if(err)
-                    {
-                        console.error("MPD returned error: " + err);
-                    }
-                    else
-                    {
-                        util.log("Paused successfully" + (msg ? ": " + msg : ""));
-                    }
-                });
-            }
-        }
-    });
-}
-
-function toggleMpd()
-{
-    client.sendCommand("status", function(err, msg){
-        if(err)
-        {
-            console.error("MPD returned error: " + err);
-        }
-        else
-        {
-            if(msg)
-            {
-                var state = mpd.parseKeyValueMessage(msg)["state"];
-                switch(state)
-                {
-                    case "play":
-                        pauseMpd();
-                        break;
-                    case "stop":
-                    case "pause":
-                        playMpd();
-                        break;
-                    default:
-                        console.error("MPD can only have three states: play, pause, stop");
-                        break;
-                }
-            }
-        }
-    });
-}
-
-function getMpdTitle()
-{
-    client.sendCommand("currentsong", function(err, msg){
-        if(err)
-        {
-            console.error("MPD returned error: " + err);
-            currentTitle = "";
-        }
-        else
-        {
-            if(msg)
-            {
-                var song = mpd.parseKeyValueMessage(msg);
-
-                if(song.Title != null)
-                {
-                    currentTitle = song.Title;
-                }
-                else if(song.Name != null)
-                {
-                    currentTitle = song.Name;
-                }
-                else
-                {
-                    currentTitle = song.file;
-                }
-            }
-        }
-    });
 }
 
 httpServer.listen(1337, '127.0.0.1');
