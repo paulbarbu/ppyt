@@ -1,7 +1,7 @@
 var http = require('http');
 var util = require('util');
 var net = require('net');
-var qs = require('querystring')
+var qs = require('querystring');
 
 var mpd = require('mpd');
 

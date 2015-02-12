@@ -1,7 +1,10 @@
 var { Hotkey } = require("sdk/hotkeys");
 var { Request } = require("sdk/request");
-var { PageMod } = require("sdk/page-mod");
+var events = require("sdk/system/events");
+var tabs = require("sdk/tabs");
+var qs = require("sdk/querystring");
 
+const { Cc, Ci, Cr } = require("chrome");
 Hotkey({
     combo: "shift-accel-alt-p",
     onPress: function() {
@@ -9,18 +12,30 @@ Hotkey({
     }
 });
 
-PageMod({
-    //TODO: if I click a video inside an already opened youtube tab this doesn't fire since it's already attached
-    include: "*.youtube.com",
-    attachTo: ["top"],
-    contentScriptWhen: "ready",
-    contentScript: "self.port.emit('title', document.getElementById('eow-title').innerHTML);",
-    onAttach: function(worker){
-        if(isYoutube(worker.url))
+// when the response is examined, the URL on the tab is changed, too
+events.on("http-on-examine-response", function (event) {
+    var channel = event.subject.QueryInterface(Ci.nsIHttpChannel); // without this event.subject.URI would be null for some reason
+    var url = event.subject.URI.spec;
+
+    if(isYoutube(url))
+    {
+        // get the video id from the URL
+        let query = url.slice(url.indexOf("?") + 1);
+        let videoId = qs.parse(query)["v"];
+
+        for(let tab of tabs)
         {
-            worker.port.on("title", function(title){
-                writeState("PLAYING", title);
-            });
+            if(tab.url.indexOf(videoId) !== -1 && isYoutube(tab.url))
+            {
+                tab.attach({
+                    contentScriptFile: "./videoLoaded.js",
+                    onMessage: function(title) {
+                        writeState("PLAYING", title);
+                    }
+                });
+
+                break; //TODO:what if I have more YT tabs open?
+            }
         }
     }
 });
@@ -28,8 +43,6 @@ PageMod({
 function main()
 {
     require("sdk/preferences/service").set("extensions.ppYt@paul.barbu.sdk.console.logLevel", "all");
-
-    let tabs = require("sdk/tabs");
 
     let found = false;
     for(let tab of tabs)
@@ -83,5 +96,9 @@ function writeState(state, title)
 }
 
 function isYoutube(url) {
-    return url.indexOf("youtube.com/watch") !== -1;
+    return url.indexOf("youtube.com/watch?v") !== -1;
 }
+
+// exports.onUnload = function (reason) {
+//     events.off("http-on-modify-request", listener);
+// };
