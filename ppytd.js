@@ -1,3 +1,5 @@
+/*jslint white: true */
+
 var http = require('http');
 var util = require('util');
 var net = require('net');
@@ -5,7 +7,7 @@ var qs = require('querystring');
 
 var mpdLib = require('./mpd-common');
 
-currentTitle = null;
+var currentTitle = null;
 
 mpdLib.mpdClient.on("system-player", function() {
     mpdLib.getMpdTitle(function(title){
@@ -13,10 +15,34 @@ mpdLib.mpdClient.on("system-player", function() {
     });
 });
 
+
+function receivedCommand(c)
+{
+    var t = c.title ? c.title.replace(/\s+/gi, ' ') : "";
+    util.log("Youtube is " + c.state);
+    util.log("Title is " + t);
+
+    switch(c.state)
+    {
+        case "INEXISTENT":
+            mpdLib.toggleMpd(function(title){
+                currentTitle = title;
+            });
+            break;
+        case "PLAYING":
+            mpdLib.currentTitle = t;
+        case "PAUSED":
+            mpdLib.pauseMpd();
+            break;
+        default:
+            break;
+    }
+}
+
 var httpServer = http.createServer(function(req, res){
     var data = "";
 
-    if(req.method == "POST")
+    if(req.method === "POST")
     {
         req.on('data', function(chunk){
             data += chunk;
@@ -27,7 +53,7 @@ var httpServer = http.createServer(function(req, res){
 
             res.writeHead(200, {'Content-Type': 'text/plain'});
             res.end();
-        })
+        });
     }
     else
     {
@@ -42,27 +68,6 @@ var tcpServer = net.createServer(function(socket) {
         socket.end(currentTitle);
     }
 });
-
-function receivedCommand(c)
-{
-    var t = c.title ? c.title.replace(/\s+/gi, ' ') : "";
-    util.log("Youtube is " + c.state);
-    util.log("Title is " + t);
-
-    switch(c.state)
-    {
-        case "INEXISTENT":
-            mpdLib.toggleMpd();
-            break;
-        case "PLAYING":
-            mpdLib.currentTitle = t;
-        case "PAUSED":
-            mpdLib.pauseMpd();
-            break;
-        default:
-            break;
-    }
-}
 
 httpServer.listen(1337, '127.0.0.1');
 tcpServer.listen(1338, '127.0.0.1');

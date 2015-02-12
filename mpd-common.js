@@ -1,15 +1,12 @@
-var util = require('util');
+/*jslint white: true */
 
-exports.pauseMpd = pauseMpd;
-exports.playMpd = playMpd;
-exports.toggleMpd = toggleMpd;
-exports.getMpdTitle = getMpdTitle;
+var util = require('util');
 
 var mpd = require('mpd');
 
 var client = mpd.connect({
     port: 6600,
-    host: "localhost",
+    host: "localhost"
 });
 
 exports.mpdClient = client;
@@ -20,7 +17,7 @@ function mpdSend(cmd, callback, onError)
         if(err)
         {
             console.error("MPD returned error: " + err);
-            if(typeof onError == "function")
+            if(typeof onError === "function")
             {
                 onError(err);
             }
@@ -32,11 +29,44 @@ function mpdSend(cmd, callback, onError)
     });
 }
 
-function playMpd()
+function getMpdTitle(titleSetter)
+{
+    if(typeof titleSetter !== "function")
+    {
+        throw "titleSetter has to be a function, but is: " + typeof titleSetter;
+    }
+
+    mpdSend("currentsong",
+        function(msg){
+            if(msg)
+            {
+                var song = mpd.parseKeyValueMessage(msg);
+
+                if(song.Title)
+                {
+                    titleSetter(song.Title);
+                }
+                else if(song.Name)
+                {
+                    titleSetter(song.Name);
+                }
+                else
+                {
+                    titleSetter(song.file);
+                }
+            }
+        },
+        function(){
+            titleSetter("");
+        }
+    );
+}
+
+function playMpd(titleSetter)
 {
     mpdSend("play", function(msg){
         util.log("Played successfully" + (msg ? ": " + msg : ""));
-        getMpdTitle();
+        getMpdTitle(titleSetter);
     });
 }
 
@@ -45,7 +75,7 @@ function pauseMpd()
     mpdSend("currentsong", function(msg){
         var file = mpd.parseKeyValueMessage(msg).file;
 
-        if(file.indexOf("http://") == -1)
+        if(file.indexOf("http://") === -1)
         {
             // the file is on disk, I can pause it
             mpdSend("pause 1", function(msg){
@@ -62,12 +92,12 @@ function pauseMpd()
     });
 }
 
-function toggleMpd()
+function toggleMpd(titleSetter)
 {
     mpdSend("status", function(msg){
         if(msg)
         {
-            var state = mpd.parseKeyValueMessage(msg)["state"];
+            var state = mpd.parseKeyValueMessage(msg).state;
             switch(state)
             {
                 case "play":
@@ -75,7 +105,7 @@ function toggleMpd()
                     break;
                 case "stop":
                 case "pause":
-                    playMpd();
+                    playMpd(titleSetter);
                     break;
                 default:
                     console.error("MPD can only have three states: play, pause, stop");
@@ -85,35 +115,6 @@ function toggleMpd()
     });
 }
 
-function getMpdTitle(titleSetter)
-{
-    if(typeof titleSetter != "function")
-    {
-        throw "titleSetter has to be a function, but is: " + typeof titleSetter;
-    }
-
-    mpdSend("currentsong",
-        function(msg){
-            if(msg)
-            {
-                var song = mpd.parseKeyValueMessage(msg);
-
-                if(song.Title != null)
-                {
-                    titleSetter(song.Title);
-                }
-                else if(song.Name != null)
-                {
-                    titleSetter(song.Name);
-                }
-                else
-                {
-                    titleSetter(song.file);
-                }
-            }
-        },
-        function(){
-            titleSetter("");
-        }
-    );
-}
+exports.pauseMpd = pauseMpd;
+exports.toggleMpd = toggleMpd;
+exports.getMpdTitle = getMpdTitle;
