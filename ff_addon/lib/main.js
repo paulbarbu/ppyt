@@ -18,10 +18,11 @@ PageMod({ //this handles the loading via a new tab, http-on-examine-response han
     include: "*.youtube.com",
     attachTo: ["top"],
     contentScriptWhen: "ready",
-    contentScript: "self.port.emit('title', document.getElementById('eow-title').innerHTML);",
+    contentScriptFile: ["./info.js", "./videoOpened.js"],
     onAttach: function(worker){
         if(isYoutube(worker.url))
         {
+            //TODO: if already playing, stop it
             worker.port.on("title", function(title){
                 writeState("PLAYING", title);
             });
@@ -50,9 +51,10 @@ function responseReceived(event) {
         {
             if(tab.url.indexOf(videoId) !== -1 && isYoutube(tab.url))
             {
+                //TODO: if already playign, stop it
                 console.log("Found tab!");
                 tab.attach({
-                    contentScriptFile: "./videoLoaded.js",
+                    contentScriptFile: ["./info.js", "./videoLoaded.js"],
                     onMessage: function(title) {
                         writeState("PLAYING", title);
                     }
