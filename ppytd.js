@@ -46,8 +46,9 @@ var tcpServer = net.createServer(function(socket) {
 
 function receivedCommand(c)
 {
+    var t = c.title ? c.title.replace(/\s+/gi, ' ') : "";
     util.log("Youtube is " + c.state);
-    util.log("Title is " + c.title.replace(/\s+/gi, ' '));
+    util.log("Title is " + t);
 
     switch(c.state)
     {
@@ -55,7 +56,7 @@ function receivedCommand(c)
             toggleMpd();
             break;
         case "PLAYING":
-            currentTitle = c.title.replace(/\s+/gi, ' ');
+            currentTitle = t;
         case "PAUSED":
             pauseMpd();
             break;

@@ -13,10 +13,14 @@ PageMod({
     //TODO: if I click a video inside an already opened youtube tab this doesn't fire since it's already attached
     include: "*.youtube.com",
     attachTo: ["top"],
+    contentScriptWhen: "ready",
+    contentScript: "self.port.emit('title', document.getElementById('eow-title').innerHTML);",
     onAttach: function(worker){
         if(isYoutube(worker.url))
         {
-            writeState("PLAYING", "TODO, populate this! with content script + message");
+            worker.port.on("title", function(title){
+                writeState("PLAYING", title);
+            });
         }
     }
 });
