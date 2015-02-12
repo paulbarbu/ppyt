@@ -27,6 +27,8 @@ This can be used to read the song name into conky.
 
 The Firefox exension also stops MPD when you open a new video.
 
+If you send `ctrl+shift+alt+s` to the Firefox extension it will stop the current video and toggle MPD (mpd can be toggle via `ppyst.sh mpdonly`, too).
+
 
 Installation (development)
 ==========================

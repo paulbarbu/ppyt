@@ -9,10 +9,16 @@ const { Cc, Ci, Cr } = require("chrome");
 Hotkey({
     combo: "shift-accel-alt-p",
     onPress: function() {
-        main();
+        toggle();
     }
 });
 
+Hotkey({
+    combo: "shift-accel-alt-s",
+    onPress: function() {
+        toggle(true);
+    }
+});
 
 PageMod({ //this handles the loading via a new tab, http-on-examine-response handles the video change in the same tab
     include: "*.youtube.com",
@@ -66,8 +72,9 @@ function responseReceived(event) {
     }
 }
 
-function main()
+function toggle(stop)
 {
+    stop = stop || false;
     require("sdk/preferences/service").set("extensions.ppYt@paul.barbu.sdk.console.logLevel", "all");
 
     let found = false;
@@ -77,7 +84,7 @@ function main()
         if(isYoutube(tab.url))
         {
             found = true;
-            pauseYT(tab);
+            ctrlYT(tab, stop);
             break;
         }
     }
@@ -88,12 +95,13 @@ function main()
     }
 }
 
-function pauseYT(tab)
+function ctrlYT(tab, stop)
 {
-    console.log("Toggling video!");
+    console.log((stop ? "Stopping" : "Toggling") + " video!");
 
     tab.attach({
-        contentScriptFile: "./pauseScript.js",
+        contentScriptOptions: {stop: stop},
+        contentScriptFile: "./toggleVideo.js",
         onMessage: function(msg) {
             console.log(msg.msg);
             writeState(msg.state, msg.title)
@@ -106,7 +114,8 @@ function pauseYT(tab)
 
 function writeState(state, title)
 {
-    console.log("Writing state: " + state + "- Title: " + title);
+    console.log("Writing state: " + state);
+    console.log("Writing title: " + title);
 
     var r = Request({
         url: "http://127.0.0.1:1337",
